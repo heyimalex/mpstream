@@ -22,9 +22,9 @@ func New(parts []*Part) *Streamer {
     delimiter := []byte(fmt.Sprintf("\r\n--%s\r\n", boundary))
 
     // Delimiter size averages out to six, and there are len(parts) + 1 delimiters.
-    // head:   --<boundary>CRLF
-    // middle: CRLF--<boundary>CRLF
-    // close:  CRLF--<boundary>--CRLF
+    // head(4):   --<boundary>CRLF
+    // middle(6): CRLF--<boundary>CRLF
+    // close(8):  CRLF--<boundary>--CRLF
     size := int64((len(parts) + 1) * (len(boundary) + 6))
 
     for i, part := range parts {
