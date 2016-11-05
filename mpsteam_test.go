@@ -2,10 +2,27 @@ package mpstream
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"testing"
 )
+
+func ReadAllAByteAtATime(r io.Reader) ([]byte, error) {
+	buf := make([]byte, 1)
+	var buf2 bytes.Buffer
+	for {
+		if n, err := r.Read(buf); err == io.EOF {
+			buf2.Write(buf[:n])
+			break
+		} else if err != nil {
+			return nil, err
+		} else {
+			buf2.Write(buf[:n])
+		}
+	}
+	return buf2.Bytes(), nil
+}
 
 func TestBuildWithBoundary(t *testing.T) {
 
@@ -19,7 +36,7 @@ func TestBuildWithBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer stream.Close()
-	result1, err := ioutil.ReadAll(stream)
+	result1, err := ReadAllAByteAtATime(stream)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,4 +74,22 @@ func TestBuildWithBoundary(t *testing.T) {
 		t.Errorf("- expected: %d", int64(len(result1)))
 		t.Errorf("- actual:   %d", stream.ContentLength())
 	}
+}
+
+
+
+func BenchmarkHello(b *testing.B) {
+	const boundary = "xxxtestboundaryxxx"
+    for i := 0; i < b.N; i++ {
+        stream, err := BuildWithBoundary(boundary, []Part{
+			MakeStringPart("foo", "fux"),
+			MakeStringPart("bar", "yolo"),
+			MakeStringPart("foo", "fux"),
+			MakeStringPart("bar", "yolo"),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		ioutil.ReadAll(stream)
+    }
 }
