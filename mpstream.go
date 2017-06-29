@@ -20,13 +20,6 @@ type Part struct {
 	Body   io.Reader
 }
 
-type Stream struct {
-	reader   io.Reader
-	boundary string
-	size     int64
-	parts    []Part
-}
-
 func Build(parts []Part) (*Stream, error) {
 	boundary, err := randomBoundary()
 	if err != nil {
@@ -40,8 +33,7 @@ func BuildWithBoundary(boundary string, parts []Part) (*Stream, error) {
 		return nil, err
 	}
 
-	reader, size := BuildWithBoundary2(boundary, parts)
-	/*readers := make([]io.Reader, len(parts)*3+1)
+	readers := make([]io.Reader, len(parts)*3+1)
 
 	// Delimiter size averages out to six, and there are len(parts) + 1 delimiters.
 	// head(4):   --<boundary>CRLF
@@ -74,15 +66,22 @@ func BuildWithBoundary(boundary string, parts []Part) (*Stream, error) {
 
 		readers[i*3+2] = part.Body
 		size += part.Size
-	}*/
+	}
 
 	streamer := &Stream{
-		reader:   reader,
+		reader:   io.MultiReader(readers...),
 		boundary: boundary,
 		size:     size,
 		parts:    parts,
 	}
 	return streamer, nil
+}
+
+type Stream struct {
+	reader   io.Reader
+	boundary string
+	size     int64
+	parts    []Part
 }
 
 func (s *Stream) ContentType() string {
@@ -110,13 +109,10 @@ func (s *Stream) Close() error {
 			}
 		}
 	}
-	switch len(errs) {
-	case 0:
-		return nil
-	case 1:
-		return errs[0]
-	default:
+	if len(errs) > 0 {
 		return &streamCloseError{errs}
+	} else {
+		return nil
 	}
 }
 
@@ -133,6 +129,10 @@ func (e *streamCloseError) Error() string {
 		fmt.Fprintf(&msg, ", [%d]: %s", i, errs[i])
 	}
 	return msg.String()
+}
+
+func (e *streamCloseError) WrappedErrors() []error {
+	return e.errs
 }
 
 func randomBoundary() (string, error) {
@@ -231,3 +231,4 @@ func (lf *lazyFile) Close() error {
 	}
 	return nil
 }
+

@@ -76,8 +76,6 @@ func TestBuildWithBoundary(t *testing.T) {
 	}
 }
 
-
-
 func BenchmarkHello(b *testing.B) {
 	const boundary = "xxxtestboundaryxxx"
     for i := 0; i < b.N; i++ {
