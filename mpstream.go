@@ -205,33 +205,29 @@ func MakeFilePart(fieldname, filename string) (p Part, err error) {
 	h.Set("Content-Type", contentType)
 
 	p.Header = h
-	p.Body = &lazyFileReader{filename: filename}
+	p.Body = &lazyFile{filename: filename}
 	return
 
 }
 
-type lazyFileReader struct {
+type lazyFile struct {
 	filename string
 	file     *os.File
 }
 
-func (lfr *lazyFileReader) Read(p []byte) (n int, err error) {
-	if lfr.file == nil {
-		lfr.file, err = os.Open(lfr.filename)
+func (lf *lazyFile) Read(p []byte) (n int, err error) {
+	if lf.file == nil {
+		lf.file, err = os.Open(lf.filename)
 		if err != nil {
 			return 0, fmt.Errorf("mpstream: %s", err)
 		}
 	}
-	n, err = lfr.file.Read(p)
-	if err == io.EOF {
-		// swallow error ??? lfr.file.Close()
-	}
-	return
+	return lf.file.Read(p)
 }
 
-func (lfr *lazyFileReader) Close() error {
-	if lfr.file != nil {
-		return lfr.file.Close()
+func (lf *lazyFile) Close() error {
+	if lf.file != nil {
+		return lf.file.Close()
 	}
 	return nil
 }

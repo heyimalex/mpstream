@@ -7,12 +7,23 @@ import (
 	//"errors"
 	"fmt"
 	"io"
-	//"net/textproto"
+	"net/textproto"
 	//"os"
 	//"path/filepath"
 	//"strings"
 	//"mime"
 )
+
+func buildHeader(h textproto.MIMEHeader) []byte {
+	var b bytes.Buffer
+	for k, vv := range h {
+		for _, v := range vv {
+			fmt.Fprintf(&b, "%s: %s\r\n", k, v)
+		}
+	}
+	b.WriteString("\r\n")
+	return b.Bytes()
+}
 
 func BuildWithBoundary2(boundary string, parts []Part) (*mpstream, int64) {
 
