@@ -196,7 +196,7 @@ func MakeFilePart(fieldname, filename string) (p Part, err error) {
 		return
 	}
 	p.Size = stats.Size()
-	name := stats.Name()
+			escapeQuotes(fieldname), escapeQuotes(stats.Name())))
 
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
