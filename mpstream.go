@@ -20,15 +20,15 @@ type Part struct {
 	Body   io.Reader
 }
 
-func Build(parts []Part) (*Stream, error) {
+func New(parts ...Part) (*Stream, error) {
 	boundary, err := randomBoundary()
 	if err != nil {
 		return nil, err
 	}
-	return BuildWithBoundary(boundary, parts)
+	return NewWithBoundary(boundary, parts...)
 }
 
-func BuildWithBoundary(boundary string, parts []Part) (*Stream, error) {
+func NewWithBoundary(boundary string, parts ...Part) (*Stream, error) {
 	if err := validateBoundary(boundary); err != nil {
 		return nil, err
 	}
