@@ -8,7 +8,6 @@ import (
 )
 
 func TestNewWithBoundary(t *testing.T) {
-
 	const boundary = "xxxtestboundaryxxx"
 
 	stream, err := NewWithBoundary(boundary,
@@ -55,5 +54,14 @@ func TestNewWithBoundary(t *testing.T) {
 		t.Error("content length was incorrect")
 		t.Errorf("- expected: %d", int64(len(result1)))
 		t.Errorf("- actual:   %d", stream.ContentLength())
+	}
+}
+
+func TestErrorWhenNoParts(t *testing.T) {
+	if _, err := New(); err == nil {
+		t.Fatal("expected to fail with zero parts passed")
+	}
+	if _, err := NewSmart(); err == nil {
+		t.Fatal("expected to fail with zero parts passed")
 	}
 }
