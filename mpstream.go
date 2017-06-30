@@ -74,7 +74,6 @@ func NewWithBoundary(boundary string, parts ...Part) (*Stream, error) {
 		Reader:   io.MultiReader(readers...),
 		boundary: boundary,
 		size:     size,
-		parts:    parts,
 	}
 	return streamer, nil
 }
@@ -83,54 +82,18 @@ type Stream struct {
 	io.Reader
 	boundary string
 	size     int64
-	parts    []Part
 }
 
-func (s *Stream) ContentType() string {
+func (s Stream) ContentType() string {
 	return "multipart/form-data; boundary=" + s.boundary
 }
 
-func (s *Stream) ContentLength() int64 {
+func (s Stream) ContentLength() int64 {
 	return s.size
 }
 
-func (s *Stream) Boundary() string {
+func (s Stream) Boundary() string {
 	return s.boundary
-}
-
-func (s *Stream) Close() error {
-	var errs []error
-	for _, part := range s.parts {
-		if c, ok := part.Body.(io.Closer); ok {
-			if err := c.Close(); err != nil {
-				errs = append(errs, err)
-			}
-		}
-	}
-	if len(errs) > 0 {
-		return &streamCloseError{errs}
-	} else {
-		return nil
-	}
-}
-
-type streamCloseError struct {
-	errs []error
-}
-
-func (e *streamCloseError) Error() string {
-	errs := e.errs
-	var msg bytes.Buffer
-	fmt.Fprintf(&msg, "mpstream: encountered %d errors while closing parts:", len(errs))
-	fmt.Fprintf(&msg, "[%d]: %s", 0, errs[0])
-	for i := 1; i < len(errs); i++ {
-		fmt.Fprintf(&msg, ", [%d]: %s", i, errs[i])
-	}
-	return msg.String()
-}
-
-func (e *streamCloseError) WrappedErrors() []error {
-	return e.errs
 }
 
 func randomBoundary() (string, error) {
@@ -165,22 +128,18 @@ func escapeQuotes(s string) string {
 	return quoteEscaper.Replace(s)
 }
 
-func MakeBytePart(fieldname string, body []byte) Part {
+func FormField(fieldname string, value []byte) Part {
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"`, escapeQuotes(fieldname)))
 	return Part{
 		Header: h,
-		Size:   int64(len(body)),
-		Body:   bytes.NewReader(body),
+		Size:   int64(len(value)),
+		Body:   bytes.NewReader(value),
 	}
 }
 
-func MakeStringPart(fieldname, body string) Part {
-	return MakeBytePart(fieldname, []byte(body))
-}
-
-func MakeFilePart(fieldname, filename string) (p Part, err error) {
+func FormFile(fieldname, filename string) (p Part, f *os.File, err error) {
 	stats, err := os.Stat(filename)
 	if err != nil {
 		return
@@ -200,30 +159,12 @@ func MakeFilePart(fieldname, filename string) (p Part, err error) {
 			escapeQuotes(fieldname), escapeQuotes(stats.Name())))
 	h.Set("Content-Type", "application/octet-stream")
 	p.Header = h
-	p.Body = &lazyFile{filename: filename}
+
+	f, err = os.Open(filename)
+	if err != nil {
+		return
+	}
+
+	p.Body = f
 	return
-
 }
-
-type lazyFile struct {
-	filename string
-	file     *os.File
-}
-
-func (lf *lazyFile) Read(p []byte) (n int, err error) {
-	if lf.file == nil {
-		lf.file, err = os.Open(lf.filename)
-		if err != nil {
-			return 0, fmt.Errorf("mpstream: %s", err)
-		}
-	}
-	return lf.file.Read(p)
-}
-
-func (lf *lazyFile) Close() error {
-	if lf.file != nil {
-		return lf.file.Close()
-	}
-	return nil
-}
-
