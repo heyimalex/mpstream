@@ -192,7 +192,10 @@ func MakeFilePart(fieldname, filename string) (p Part, err error) {
 		return
 	}
 	if stats.IsDir() {
-		err = errors.New("mpstream: cannot make file part for directory")
+		err = fmt.Errorf(
+			`mpstream: error creating file part "%s": path "%s" is a directory`,
+			fieldname, filename,
+		)
 		return
 	}
 	p.Size = stats.Size()
