@@ -9,9 +9,7 @@ import (
 	"io"
 	"net/textproto"
 	"os"
-	"path/filepath"
 	"strings"
-	"mime"
 )
 
 type Part struct {
@@ -199,18 +197,12 @@ func MakeFilePart(fieldname, filename string) (p Part, err error) {
 		return
 	}
 	p.Size = stats.Size()
-			escapeQuotes(fieldname), escapeQuotes(stats.Name())))
 
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
-			escapeQuotes(fieldname), escapeQuotes(filename)))
-	contentType := mime.TypeByExtension(filepath.Ext(name))
-	if contentType != "" {
-		contentType = "application/octet-stream"
-	}
-	h.Set("Content-Type", contentType)
-
+			escapeQuotes(fieldname), escapeQuotes(stats.Name())))
+	h.Set("Content-Type", "application/octet-stream")
 	p.Header = h
 	p.Body = &lazyFile{filename: filename}
 	return
