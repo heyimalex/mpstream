@@ -71,7 +71,7 @@ func NewWithBoundary(boundary string, parts ...Part) (*Stream, error) {
 	}
 
 	streamer := &Stream{
-		reader:   io.MultiReader(readers...),
+		Reader:   io.MultiReader(readers...),
 		boundary: boundary,
 		size:     size,
 		parts:    parts,
@@ -80,7 +80,7 @@ func NewWithBoundary(boundary string, parts ...Part) (*Stream, error) {
 }
 
 type Stream struct {
-	reader   io.Reader
+	io.Reader
 	boundary string
 	size     int64
 	parts    []Part
@@ -96,10 +96,6 @@ func (s *Stream) ContentLength() int64 {
 
 func (s *Stream) Boundary() string {
 	return s.boundary
-}
-
-func (s *Stream) Read(p []byte) (n int, err error) {
-	return s.reader.Read(p)
 }
 
 func (s *Stream) Close() error {
