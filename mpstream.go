@@ -33,6 +33,10 @@ func NewWithBoundary(boundary string, parts ...Part) (*Stream, error) {
 		return nil, err
 	}
 
+	if len(parts) == 0 {
+		return nil, errors.New("mpstream: must pass at least one part")
+	}
+
 	readers := make([]io.Reader, len(parts)*3+1)
 
 	// Delimiter size averages out to six, and there are len(parts) + 1 delimiters.
